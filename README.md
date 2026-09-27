@@ -6,7 +6,7 @@ A small, fast desktop viewer for VCF files. Open a file and read it — no comma
 
 ## Install
 
-Download the latest version for your system from the [website](docs/index.html) or the [Releases page](https://github.com/OWNER/vcf-lite/releases/latest).
+Download the latest version for your system from the [website](docs/index.html) or the [Releases page](https://github.com/mikesaint-antoine/vcf_lite/releases/latest).
 
 | System | File | First launch |
 |---|---|---|

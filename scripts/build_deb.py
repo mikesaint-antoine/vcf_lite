@@ -27,7 +27,7 @@ from vcflite import __version__  # noqa: E402
 
 PKG = "vcf-lite"
 LIB = f"usr/lib/{PKG}"
-HOMEPAGE = "https://github.com/OWNER/vcf-lite"
+HOMEPAGE = "https://github.com/mikesaint-antoine/vcf_lite"
 MAINTAINER = f"Mike Saint-Antoine ({HOMEPAGE})"
 # Pure-Python runtime deps of pywebview on Linux (the GTK backend comes from
 # the system's python3-gi).  Versions pinned for reproducible packages.
