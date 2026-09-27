@@ -1,8 +1,12 @@
 # Builds and tests VCF Lite on macOS, Windows and Linux.
 #
-# Every push / pull request: run the tests, build every platform, and
-# self-test each build (the app opens tests/data/sample.vcf.gz in a real
-# window and checks rows appear).
+# Every push / pull request: run the tests.
+# Version tags (v*) and manual runs (Actions tab → build → Run workflow):
+# also build every platform and self-test each build (the app opens
+# tests/data/sample.vcf.gz in a real window and checks rows appear).
+# (Full builds aren't run on every push to save Actions minutes while the
+# repo is private: macOS minutes count 10x there.  Once it's public, minutes
+# are free, and the `if:` lines on the build jobs can be removed.)
 # Pushing a tag like v0.1.0 additionally publishes a GitHub Release with the
 # files the website links to (fixed names, so .../releases/latest/download/<name>
 # always serves the newest build):
@@ -39,6 +43,7 @@ jobs:
       - run: python -m pytest -q
 
   macos:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     needs: test
     strategy:
       fail-fast: false
@@ -64,6 +69,7 @@ jobs:
         with: { name: "macos-${{ matrix.arch }}", path: out/* }
 
   windows:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     needs: test
     runs-on: windows-latest
     steps:
@@ -105,6 +111,7 @@ jobs:
         with: { name: windows-x64, path: dist/VCF-Lite-Windows-x64-Setup.exe }
 
   linux-build:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     needs: test
     runs-on: ubuntu-22.04
     steps:
