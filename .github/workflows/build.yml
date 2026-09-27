@@ -1,12 +1,8 @@
 # Builds and tests VCF Lite on macOS, Windows and Linux.
 #
-# Every push / pull request: run the tests.
-# Version tags (v*) and manual runs (Actions tab → build → Run workflow):
-# also build every platform and self-test each build (the app opens
-# tests/data/sample.vcf.gz in a real window and checks rows appear).
-# (Full builds aren't run on every push to save Actions minutes while the
-# repo is private: macOS minutes count 10x there.  Once it's public, minutes
-# are free, and the `if:` lines on the build jobs can be removed.)
+# Every push / pull request (and manual runs): run the tests, build every
+# platform, and self-test each build (the app opens tests/data/sample.vcf.gz
+# in a real window and checks rows appear).
 # Pushing a tag like v0.1.0 additionally publishes a GitHub Release with the
 # files the website links to (fixed names, so .../releases/latest/download/<name>
 # always serves the newest build):
@@ -35,15 +31,14 @@ jobs:
       matrix:
         python: ["3.10", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: "${{ matrix.python }}" }
       - run: sudo apt-get update && sudo apt-get install -y tabix bcftools
       - run: pip install pytest
       - run: python -m pytest -q
 
   macos:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     needs: test
     strategy:
       fail-fast: false
@@ -53,8 +48,8 @@ jobs:
           - { runner: macos-15-intel, arch: x64 }
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - run: pip install "$PYWEBVIEW" "$PYINSTALLER"
       - name: Build app + dmg
@@ -65,16 +60,15 @@ jobs:
         run: |
           mkdir -p out
           cp dist/*.dmg "out/VCF-Lite-macOS-${{ matrix.arch }}.dmg"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: "macos-${{ matrix.arch }}", path: out/* }
 
   windows:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     needs: test
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - run: pip install "$env:PYWEBVIEW" "$env:PYINSTALLER"
       - name: Build app
@@ -107,21 +101,20 @@ jobs:
           $p = Start-Process -FilePath $exe -ArgumentList '"tests\data\sample.vcf.gz"','--selftest' -PassThru -Wait
           Get-Content selftest-installed.txt -ErrorAction SilentlyContinue
           if ($p.ExitCode -ne 0) { throw "installed app self-test failed (exit $($p.ExitCode))" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: windows-x64, path: dist/VCF-Lite-Windows-x64-Setup.exe }
 
   linux-build:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     needs: test
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - run: pip install pillow
       - run: python scripts/build_deb.py
       - run: mkdir -p out && cp dist/vcf-lite_*_all.deb out/VCF-Lite-Linux.deb
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: linux-deb, path: out/VCF-Lite-Linux.deb }
 
   # Install the .deb with apt on clean Ubuntu releases (this also checks the
@@ -134,8 +127,8 @@ jobs:
         os: [ubuntu-22.04, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with: { name: linux-deb }
       - run: sudo apt-get update && sudo apt-get install -y xvfb ./VCF-Lite-Linux.deb
       - name: Self-test the installed app
@@ -154,15 +147,15 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Tag must match the app version
         run: |
           ver=$(python3 -c "import vcflite; print(vcflite.__version__)")
           [ "v$ver" = "${GITHUB_REF_NAME}" ] || { echo "::error::tag ${GITHUB_REF_NAME} != version v$ver (vcflite/__init__.py)"; exit 1; }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { path: out, merge-multiple: true }
       - run: cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: out/*
           generate_release_notes: true

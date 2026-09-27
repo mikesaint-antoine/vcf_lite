@@ -96,7 +96,9 @@ def main(argv=None):
         import time
 
         def selftest():
-            window.events.loaded.wait(20)
+            t0 = time.monotonic()
+            loaded = window.events.loaded.wait(20)
+            t_loaded = time.monotonic() - t0
             n = 0
             for _ in range(40):
                 time.sleep(0.25)
@@ -106,7 +108,8 @@ def main(argv=None):
                     n = 0
                 if n:
                     break
-            result = f"SELFTEST rows={n}"
+            result = (f"SELFTEST rows={n} (page loaded {'in %.1fs' % t_loaded if loaded else 'NOT signalled'}, "
+                      f"rows after {time.monotonic() - t0:.1f}s)")
             # Windowed Windows builds have no console, so also write the
             # result to a file when asked; the exit code says pass/fail.
             if os.environ.get("VCFLITE_SELFTEST_OUT"):

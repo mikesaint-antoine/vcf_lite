@@ -3,10 +3,9 @@
 Everything is built on GitHub; nothing needs to be built locally.
 
 1. Bump the version in `vcflite/__init__.py` (e.g. `__version__ = "0.2.0"`).
-2. Commit and push to `main`; the **build** workflow runs the tests. To also
-   build and self-test every platform before tagging, start it by hand:
-   Actions tab → **build** → **Run workflow**. (Pushes only run the tests while
-   the repo is private, to save Actions minutes.)
+2. Commit and push to `main`. Wait for the **build** workflow to go green on the
+   Actions tab: it tests the code and builds + self-tests the macOS, Windows and
+   Linux apps (about 3 minutes).
 3. Tag the commit and push the tag (the tag must match the version, with a `v`):
 
    ```bash
