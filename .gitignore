@@ -1,0 +1,16 @@
+# Python / tooling
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# Build outputs
+build/
+dist/
+
+# Private or large local test data: never commit (includes personal genomes).
+# A tiny public sample for CI lives in tests/data/ instead.
+test_data/
+
+.DS_Store

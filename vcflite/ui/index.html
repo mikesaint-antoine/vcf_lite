@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VCF Lite</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Empty state -->
+<section id="welcome">
+  <div class="welcome-inner">
+    <img class="mark" src="icon.png" alt="" width="88" height="88">
+    <h1>VCF Lite</h1>
+    <button id="open-big" class="primary">Open a VCF…</button>
+    <p class="hint">or drop a file anywhere · <kbd>⌘O</kbd></p>
+    <ul id="recent"></ul>
+    <p id="welcome-error" class="error" hidden></p>
+  </div>
+</section>
+
+<!-- Viewer -->
+<section id="viewer" hidden>
+  <aside id="side">
+    <dl id="info">
+      <dt>Filename</dt><dd><button id="i-name" class="link"></button></dd>
+      <dt>Build</dt><dd id="i-build"></dd>
+      <dt>Variant-only</dt><dd id="i-homref"></dd>
+      <dt>Phased</dt><dd id="i-phased"></dd>
+      <dt>Coverage</dt><dd id="i-cov"></dd>
+      <dt id="i-samples-label">Samples</dt><dd id="i-samples"></dd>
+      <dt>Size</dt><dd id="i-size"></dd>
+    </dl>
+
+    <form id="sample-form" class="panel" autocomplete="off" hidden>
+      <h2>Sample</h2>
+      <select id="sample-pick" title="Show all samples, or one sample in detail"></select>
+    </form>
+
+    <form id="goto-form" class="panel" autocomplete="off">
+      <h2>Go to position</h2>
+      <label for="chrom">Chromosome</label>
+      <select id="chrom"></select>
+      <label for="pos">Position</label>
+      <div class="row">
+        <input id="pos" type="text" spellcheck="false" placeholder="e.g. 1,000,000">
+        <button type="submit" class="btn">Go</button>
+      </div>
+    </form>
+
+    <form id="rsid-form" class="panel" autocomplete="off">
+      <h2>Find rsID</h2>
+      <div class="row">
+        <input id="rsid" type="text" spellcheck="false" placeholder="e.g. rs3121393">
+        <button type="submit" class="btn">Find</button>
+      </div>
+      <p id="rsid-msg" class="field-msg" hidden>Not found.</p>
+    </form>
+
+    <label id="hide-ref-wrap" class="toggle" hidden title="Only show records where a sample carries an ALT allele">
+      <input type="checkbox" id="hide-ref"><span>Hide hom-ref rows</span>
+    </label>
+
+    <div class="side-foot">
+      <button id="header-btn" class="ghost" title="Show the file header (H)">View header</button>
+      <button id="cols-btn" class="ghost" title="Show INFO, FORMAT and every sample field in the table">Show all columns</button>
+      <button id="open-btn" class="ghost" title="Open another file">Open file…</button>
+    </div>
+  </aside>
+
+  <div id="content">
+  <main id="main">
+    <div id="table-wrap" tabindex="0">
+      <table id="grid">
+        <colgroup id="cols"></colgroup>
+        <thead id="thead"></thead>
+        <tbody id="body"></tbody>
+      </table>
+      <div id="edge-bottom" class="edge"></div>
+    </div>
+
+    <div id="header-view" hidden>
+      <div class="hv-bar">
+        <input id="hv-filter" type="text" spellcheck="false" placeholder="Filter header lines">
+        <span id="hv-count" class="muted"></span>
+      </div>
+      <pre id="hv-text"></pre>
+    </div>
+
+    <aside id="detail" hidden>
+      <div class="d-head">
+        <div>
+          <div id="d-title" class="d-title"></div>
+        </div>
+        <div class="d-actions">
+          <button id="d-copy" class="ghost small" title="Copy this record as a VCF line">Copy record</button>
+          <button id="d-close" class="ghost icon" title="Close (Esc)">✕</button>
+        </div>
+      </div>
+      <div id="d-body"></div>
+    </aside>
+  </main>
+
+  <footer id="status">
+    <span id="st-range"></span>
+    <span id="st-msg"></span>
+    <span id="st-file" class="muted"></span>
+  </footer>
+  </div>
+</section>
+
+<div id="drop-hint" hidden><div>Drop to open</div></div>
+
+<script src="app.js"></script>
+</body>
+</html>

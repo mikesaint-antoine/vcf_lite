@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VCF Lite</title>
+<meta name="description" content="A small, fast desktop viewer for VCF files. Free for macOS, Windows and Linux.">
+<link rel="icon" href="icon.png">
+<style>
+  /* Same tokens as the app (vcflite/ui/style.css). */
+  :root {
+    --bg: #ffffff;
+    --bg2: #f6f6f7;
+    --line: #e4e4e7;
+    --line2: #d4d4d8;
+    --text: #1d1d20;
+    --muted: #7c7c84;
+    --faint: #a9a9b0;
+    --accent: #2f6bed;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1b1d;
+      --bg2: #222225;
+      --line: #313136;
+      --line2: #404047;
+      --text: #e7e7ea;
+      --muted: #8d8d95;
+      --faint: #5f5f67;
+      --accent: #6b98ff;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.55 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 1000px; margin: 0 auto; padding: 72px 16px 32px; }
+  a { color: inherit; }
+
+  /* ---- top ---- */
+  header { text-align: center; }
+  header img { width: 64px; height: 64px; }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -.02em; margin: 10px 0 6px; }
+  .tagline { color: var(--muted); font-size: 17px; margin: 0 0 28px; }
+  .download {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 10px 22px;
+    border-radius: 8px;
+  }
+  .download:hover { filter: brightness(1.06); }
+  .others { margin: 14px 0 0; font-size: 13px; color: var(--muted); }
+  .others a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line2); }
+  .others a:hover { color: var(--text); }
+  .others .sep { color: var(--faint); margin: 0 6px; }
+  .meta { margin: 6px 0 0; font-size: 13px; color: var(--faint); }
+  .first-run { max-width: 440px; margin: 14px auto 0; font-size: 12.5px; color: var(--muted); }
+  .first-run code { font-size: 12px; }
+
+  /* ---- screenshot in a plain window frame ---- */
+  .window {
+    margin: 52px 0 32px;
+    border: 1px solid var(--line2);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .10);
+    background: var(--bg);
+  }
+  .titlebar {
+    position: relative;
+    height: 30px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 30px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 70px;
+  }
+  .titlebar .dots { position: absolute; left: 12px; top: 10px; display: flex; gap: 7px; }
+  .titlebar .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line2); }
+  .window img { display: block; width: 100%; height: auto; }
+  .window .dark { display: none; }
+  @media (prefers-color-scheme: dark) {
+    .window .light { display: none; }
+    .window .dark { display: block; }
+  }
+
+  code { font: 13.5px var(--mono); }
+  .formats { text-align: center; margin: 0; color: var(--muted); font-size: 14px; }
+
+  footer {
+    text-align: center;
+    font-size: 13px;
+    color: var(--faint);
+    padding: 56px 16px 40px;
+  }
+  footer a { color: var(--muted); }
+
+  @media (max-width: 600px) {
+    main { padding-top: 48px; }
+    .window { margin: 36px 0 24px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.png" alt="">
+    <h1>VCF Lite</h1>
+    <p class="tagline">A small, fast desktop viewer for VCF files.</p>
+
+    <a class="download" id="download" href="#">Download</a>
+    <p class="others" id="others"></p>
+    <p class="meta"><span id="version">Version 0.1.0</span> · Free and open source</p>
+    <p class="first-run" id="first-run" hidden></p>
+  </header>
+
+  <div class="window">
+    <div class="titlebar"><span class="dots"><i></i><i></i><i></i></span>VCF Lite - mike_genome.vcf.gz</div>
+    <img class="light" src="screenshot-light.webp" width="2720" height="1560"
+         alt="VCF Lite showing a whole-genome VCF, with one variant selected and its details open">
+    <img class="dark" src="screenshot-dark.webp" width="2720" height="1560" alt="">
+  </div>
+
+  <p class="formats">
+    Reads <code>.vcf</code> and <code>.vcf.gz</code>, with or without a <code>.tbi</code> or <code>.csi</code> index.
+  </p>
+</main>
+
+<footer>
+  <a id="source" href="#">Source on GitHub</a> · MIT License
+</footer>
+
+<script>
+  // ---- The one line to edit when the GitHub repo exists: ----
+  const REPO = "https://github.com/OWNER/vcf-lite";
+
+  // Release files (fixed names; see .github/workflows/build.yml). "latest"
+  // always serves the newest release.
+  const file = (name) => `${REPO}/releases/latest/download/${name}`;
+  const builds = {
+    mac:      { label: "macOS",         href: file("VCF-Lite-macOS-arm64.dmg") },
+    macIntel: { label: "macOS (Intel)", href: file("VCF-Lite-macOS-x64.dmg") },
+    windows:  { label: "Windows",       href: file("VCF-Lite-Windows-x64-Setup.exe") },
+    linux:    { label: "Ubuntu / Debian", href: file("VCF-Lite-Linux.deb") },
+  };
+  // Unsigned for now, so each OS asks once before opening it.
+  const firstRun = {
+    mac: "First time on a Mac: if macOS says it can’t verify the app, open System Settings → Privacy &amp; Security and click <b>Open Anyway</b>.",
+    windows: "First time on Windows: if a blue SmartScreen box appears, click <b>More info</b> → <b>Run anyway</b>.",
+    linux: "Install with <code>sudo apt install ./VCF-Lite-Linux.deb</code>, then find VCF Lite in your apps.",
+  };
+
+  // Point the main button at the visitor's platform; list the rest below it.
+  const ua = navigator.userAgent;
+  const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+  let mine = null;
+  if (/Mac/i.test(platform) && !/iPhone|iPad/i.test(ua)) mine = "mac";
+  else if (/Win/i.test(platform)) mine = "windows";
+  else if (/Linux/i.test(platform) && !/Android/i.test(ua)) mine = "linux";
+
+  const btn = document.getElementById("download");
+  if (mine) {
+    btn.textContent = "Download for " + builds[mine].label;
+    btn.href = builds[mine].href;
+    const note = document.getElementById("first-run");
+    note.innerHTML = firstRun[mine];
+    note.hidden = false;
+  } else {
+    btn.textContent = "Downloads";  // phones etc.: the release page lists everything
+    btn.href = REPO + "/releases/latest";
+  }
+  const rest = Object.keys(builds).filter((k) => k !== mine);
+  document.getElementById("others").innerHTML = (mine ? "Also for " : "For ") +
+    rest.map((k) => `<a href="${builds[k].href}">${builds[k].label}</a>`).join('<span class="sep">·</span>');
+  document.getElementById("source").href = REPO;
+
+  // Show the latest release's version (keeps the static text if offline).
+  const api = REPO.replace("https://github.com/", "https://api.github.com/repos/") + "/releases/latest";
+  if (!REPO.includes("/OWNER/")) {
+    fetch(api).then((r) => (r.ok ? r.json() : null)).then((rel) => {
+      if (rel && rel.tag_name) document.getElementById("version").textContent = "Version " + rel.tag_name.replace(/^v/, "");
+    }).catch(() => {});
+  }
+</script>
+</body>
+</html>

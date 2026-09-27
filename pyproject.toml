@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vcflite"
+dynamic = ["version"]
+description = "A small, fast desktop viewer for VCF files."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Mike Saint-Antoine" }]
+# Pinned: the Linux .deb vendors exactly this version (see scripts/build_deb.py).
+dependencies = ["pywebview==6.2.1"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Environment :: MacOS X",
+  "Environment :: Win32 (MS Windows)",
+  "Environment :: X11 Applications",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pyinstaller>=6", "playwright", "pillow"]
+
+[project.gui-scripts]
+vcf-lite = "vcflite.app:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "vcflite.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["vcflite*"]
+
+[tool.setuptools.package-data]
+vcflite = ["ui/*", "data/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
