@@ -1,0 +1,5 @@
+# The website is just docs/ (a static page). Upload nothing else, so Vercel
+# doesn't mistake the Python app in this repo for a Python web server.
+/*
+!/docs
+!/vercel.json
