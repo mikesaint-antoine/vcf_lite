@@ -47,13 +47,58 @@ jobs:
           - { runner: macos-15, arch: arm64 }
           - { runner: macos-15-intel, arch: x64 }
     runs-on: ${{ matrix.runner }}
+    env:
+      # Developer ID signing + notarization happen when these secrets exist
+      # (they don't for pull requests from forks, which then build unsigned).
+      HAS_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
+      HAS_NOTARY: ${{ secrets.APPLE_APP_PASSWORD != '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - run: pip install "$PYWEBVIEW" "$PYINSTALLER"
-      - name: Build app + dmg
+      - name: Import signing certificate
+        if: env.HAS_SIGNING == 'true'
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          KC="$RUNNER_TEMP/signing.keychain-db"
+          KP=$(openssl rand -hex 16)
+          security create-keychain -p "$KP" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KP" "$KC"
+          printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KP" "$KC" > /dev/null
+          # shellcheck disable=SC2046
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          ID=$(security find-identity -v -p codesigning "$KC" | grep -o '"Developer ID Application[^"]*"' | head -1 | tr -d '"')
+          [ -n "$ID" ] || { echo "::error::no Developer ID Application identity in MACOS_CERT_P12"; exit 1; }
+          echo "Signing as: $ID"
+          { echo "KEYCHAIN=$KC"; echo "MACOS_SIGN_IDENTITY=$ID"; } >> "$GITHUB_ENV"
+      - name: Build app + dmg (signed and notarized when the secrets exist)
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: PYTHON=python ./scripts/build.sh
+      - name: Check it opens cleanly (as Gatekeeper sees it)
+        if: env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
+        run: |
+          set -x
+          spctl -a -vvv -t exec "dist/VCF Lite.app" 2>&1 | tee gk-app.txt
+          grep -q "source=Notarized Developer ID" gk-app.txt
+          spctl -a -vvv -t open --context context:primary-signature dist/*.dmg 2>&1 | tee gk-dmg.txt
+          grep -q "source=Notarized Developer ID" gk-dmg.txt
+          xcrun stapler validate "dist/VCF Lite.app"
+          xcrun stapler validate dist/*.dmg
+      - name: Releases must be signed
+        if: startsWith(github.ref, 'refs/tags/v') && (env.HAS_SIGNING != 'true' || env.HAS_NOTARY != 'true')
+        run: |
+          echo "::error::release builds must be signed and notarized; set the MACOS_CERT_* and APPLE_* secrets"
+          exit 1
       - name: Self-test the built app
         run: '"dist/VCF Lite.app/Contents/MacOS/VCF Lite" tests/data/sample.vcf.gz --selftest'
       - name: Collect
