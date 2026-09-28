@@ -52,7 +52,9 @@ jobs:
       # Developer ID signing + notarization happen when these secrets exist
       # (they don't for pull requests from forks, which then build unsigned).
       HAS_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
-      HAS_NOTARY: ${{ secrets.APPLE_APP_PASSWORD != '' }}
+      # Apple's notarization only for release tags and manual runs; ordinary
+      # pushes just sign (notarization can take a long time).
+      HAS_NOTARY: ${{ secrets.APPLE_APP_PASSWORD != '' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -81,9 +83,9 @@ jobs:
           { echo "KEYCHAIN=$KC"; echo "MACOS_SIGN_IDENTITY=$ID"; } >> "$GITHUB_ENV"
       - name: Build app + dmg (signed and notarized when the secrets exist)
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ env.HAS_NOTARY == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_APP_PASSWORD: ${{ env.HAS_NOTARY == 'true' && secrets.APPLE_APP_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ env.HAS_NOTARY == 'true' && secrets.APPLE_TEAM_ID || '' }}
         run: PYTHON=python ./scripts/build.sh
       - name: Check it opens cleanly (as Gatekeeper sees it)
         if: env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'

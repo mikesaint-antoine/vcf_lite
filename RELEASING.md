@@ -13,7 +13,9 @@ Everything is built on GitHub; nothing needs to be built locally.
    git push origin v0.2.0
    ```
 
-4. The workflow runs again and, because of the tag, publishes a GitHub Release
+4. The workflow runs again and, because of the tag, signs **and notarizes** the macOS
+   app with Apple (ordinary pushes only sign it; Apple's check can take a while),
+   then publishes a GitHub Release
    with:
    - `VCF-Lite-macOS-arm64.dmg`, `VCF-Lite-macOS-x64.dmg`
    - `VCF-Lite-Windows-x64-Setup.exe`
