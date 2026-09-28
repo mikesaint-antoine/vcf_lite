@@ -82,6 +82,9 @@ jobs:
           echo "Signing as: $ID"
           { echo "KEYCHAIN=$KC"; echo "MACOS_SIGN_IDENTITY=$ID"; } >> "$GITHUB_ENV"
       - name: Build app + dmg (signed and notarized when the secrets exist)
+        # Below the job limit, so a stuck step fails (keeping the signed dmg
+        # below) instead of the whole job being cancelled.
+        timeout-minutes: 185
         env:
           APPLE_ID: ${{ env.HAS_NOTARY == 'true' && secrets.APPLE_ID || '' }}
           APPLE_APP_PASSWORD: ${{ env.HAS_NOTARY == 'true' && secrets.APPLE_APP_PASSWORD || '' }}
@@ -109,11 +112,11 @@ jobs:
           cp dist/*.dmg "out/VCF-Lite-macOS-${{ matrix.arch }}.dmg"
       - uses: actions/upload-artifact@v7
         with: { name: "macos-${{ matrix.arch }}", path: out/* }
-      # If notarization didn't finish (or anything else failed after signing),
+      # If notarization didn't finish (or anything else failed or was cancelled after signing),
       # keep the signed dmg and its Apple submission id: once Apple accepts it,
       # `xcrun stapler staple` completes it without a new submission.
       - name: Keep the signed dmg if the job failed
-        if: failure() && env.HAS_SIGNING == 'true'
+        if: (failure() || cancelled()) && env.HAS_SIGNING == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: "unfinished-macos-${{ matrix.arch }}"

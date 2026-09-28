@@ -7,7 +7,7 @@
 #   MACOS_SIGN_IDENTITY  "Developer ID Application: Name (TEAMID)"  -> sign app + dmg
 #   KEYCHAIN             keychain holding that identity (optional)
 #   APPLE_ID, APPLE_APP_PASSWORD, APPLE_TEAM_ID  -> notarize + staple the dmg
-#   NOTARY_WAIT_MINUTES  how long to wait for Apple (default 170)
+#   NOTARY_WAIT_MINUTES  how long to wait for Apple, upload included (default 170)
 #
 # Notarizing the dmg also covers the app inside it (Gatekeeper looks the
 # app's ticket up online on first launch), so there is one submission per
@@ -29,21 +29,26 @@ NOTARIZE=""
 NOTARY=(--apple-id "${APPLE_ID:-}" --password "${APPLE_APP_PASSWORD:-}" --team-id "${APPLE_TEAM_ID:-}")
 json() { $PY -c "import json,sys; print(json.load(sys.stdin).get('$1',''))" 2>/dev/null || true; }
 
-# Submit to Apple's notary service, then poll its status. Network hiccups
-# while polling are retried rather than treated as failures.
+# Run a command, killing it after $1 seconds (macOS has no `timeout`).
+limit() { local secs=$1; shift; perl -e 'alarm shift; exec @ARGV' "$secs" "$@"; }
+
+# Submit to Apple's notary service, then poll its status. A stalled upload
+# is killed after 15 minutes and retried; network hiccups while polling are
+# retried rather than treated as failures.
 notarize() {
   local file=$1 id="" status="" out deadline
-  for attempt in 1 2 3 4 5; do
-    out=$(xcrun notarytool submit "$file" "${NOTARY[@]}" --no-wait --output-format json) && id=$(printf '%s' "$out" | json id)
+  deadline=$(( $(date +%s) + ${NOTARY_WAIT_MINUTES:-170} * 60 ))
+  for attempt in 1 2 3; do
+    echo "$(date -u +%H:%M:%S) uploading $(basename "$file") to Apple (attempt $attempt)"
+    out=$(limit 900 xcrun notarytool submit "$file" "${NOTARY[@]}" --no-wait --output-format json) && id=$(printf '%s' "$out" | json id)
     [[ -n "$id" ]] && break
-    echo "submit failed (attempt $attempt), retrying in 30s"; sleep 30
+    echo "submit failed or stalled (attempt $attempt), retrying in 30s"; sleep 30
   done
   [[ -n "$id" ]] || { echo "::error::could not submit $(basename "$file") to Apple"; exit 1; }
   echo "$id" > dist/notary-submission.txt
   echo "submitted $(basename "$file") to Apple: submission $id"
-  deadline=$(( $(date +%s) + ${NOTARY_WAIT_MINUTES:-170} * 60 ))
   while :; do
-    status=$(xcrun notarytool info "$id" "${NOTARY[@]}" --output-format json 2>/dev/null | json status)
+    status=$(limit 120 xcrun notarytool info "$id" "${NOTARY[@]}" --output-format json 2>/dev/null | json status)
     echo "$(date -u +%H:%M:%S) notarization: ${status:-(no answer, will retry)}"
     case "$status" in
       Accepted) return 0 ;;
