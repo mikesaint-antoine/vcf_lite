@@ -162,9 +162,9 @@
     windows:  { label: "Windows",       href: file("VCF-Lite-Windows-x64-Setup.exe") },
     linux:    { label: "Ubuntu / Debian", href: file("VCF-Lite-Linux.deb") },
   };
-  // Unsigned for now, so each OS asks once before opening it.
+  // The Mac app is signed and notarized, so it needs no note; Windows is
+  // unsigned for now, so SmartScreen asks once before opening it.
   const firstRun = {
-    mac: "First time on a Mac: if macOS says it can’t verify the app, open System Settings → Privacy &amp; Security and click <b>Open Anyway</b>.",
     windows: "First time on Windows: if a blue SmartScreen box appears, click <b>More info</b> → <b>Run anyway</b>.",
     linux: "Install with <code>sudo apt install ./VCF-Lite-Linux.deb</code>, then find VCF Lite in your apps.",
   };
@@ -181,9 +181,11 @@
   if (mine) {
     btn.textContent = "Download for " + builds[mine].label;
     btn.href = builds[mine].href;
-    const note = document.getElementById("first-run");
-    note.innerHTML = firstRun[mine];
-    note.hidden = false;
+    if (firstRun[mine]) {
+      const note = document.getElementById("first-run");
+      note.innerHTML = firstRun[mine];
+      note.hidden = false;
+    }
   } else {
     btn.textContent = "Downloads";  // phones etc.: the release page lists everything
     btn.href = REPO + "/releases/latest";

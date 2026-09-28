@@ -10,12 +10,12 @@ Download the latest version for your system from the [website](docs/index.html) 
 
 | System | File | First launch |
 |---|---|---|
-| macOS (Apple Silicon) | `VCF-Lite-macOS-arm64.dmg` | Drag VCF Lite to Applications. If macOS says it can't verify the app, open System Settings → Privacy & Security and click **Open Anyway**. |
+| macOS (Apple Silicon) | `VCF-Lite-macOS-arm64.dmg` | Drag VCF Lite to Applications. |
 | macOS (Intel) | `VCF-Lite-macOS-x64.dmg` | Same as above. |
 | Windows 10/11 | `VCF-Lite-Windows-x64-Setup.exe` | If SmartScreen appears, click **More info → Run anyway**. Installs for your user only (no admin needed). |
 | Ubuntu / Debian | `VCF-Lite-Linux.deb` | `sudo apt install ./VCF-Lite-Linux.deb`, then open VCF Lite from your apps or run `vcf-lite`. |
 
-The apps aren't code-signed yet, which is why macOS and Windows ask once before opening them.
+The Mac app is signed and notarized by Apple. The Windows app isn't code-signed yet, which is why Windows asks once before opening it.
 
 ## What it does
 
