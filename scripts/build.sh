@@ -6,7 +6,14 @@
 # Optional signing / notarization (used by CI; unsigned if not set):
 #   MACOS_SIGN_IDENTITY  "Developer ID Application: Name (TEAMID)"  -> sign app + dmg
 #   KEYCHAIN             keychain holding that identity (optional)
-#   APPLE_ID, APPLE_APP_PASSWORD, APPLE_TEAM_ID  -> notarize + staple app and dmg
+#   APPLE_ID, APPLE_APP_PASSWORD, APPLE_TEAM_ID  -> notarize + staple the dmg
+#   NOTARY_WAIT_MINUTES  how long to wait for Apple (default 170)
+#
+# Notarizing the dmg also covers the app inside it (Gatekeeper looks the
+# app's ticket up online on first launch), so there is one submission per
+# build.  If Apple hasn't finished in time the script exits with code 3,
+# leaving the signed dmg and dist/notary-submission.txt behind: once Apple
+# accepts it, `xcrun stapler staple <dmg>` finishes the job, no resubmission.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=${PYTHON:-python}
@@ -19,35 +26,42 @@ DMG="dist/VCF-Lite-$VER-macOS.dmg"
 SIGN=${MACOS_SIGN_IDENTITY:-}
 NOTARIZE=""
 [[ -n "$SIGN" && -n "${APPLE_ID:-}" && -n "${APPLE_APP_PASSWORD:-}" && -n "${APPLE_TEAM_ID:-}" ]] && NOTARIZE=1
+NOTARY=(--apple-id "${APPLE_ID:-}" --password "${APPLE_APP_PASSWORD:-}" --team-id "${APPLE_TEAM_ID:-}")
+json() { $PY -c "import json,sys; print(json.load(sys.stdin).get('$1',''))" 2>/dev/null || true; }
 
-# Submit a file to Apple's notary service and wait; show Apple's log on failure.
+# Submit to Apple's notary service, then poll its status. Network hiccups
+# while polling are retried rather than treated as failures.
 notarize() {
-  local out id status
-  out=$(xcrun notarytool submit "$1" --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
-        --team-id "$APPLE_TEAM_ID" --wait --timeout 60m --output-format json)
-  id=$(printf '%s' "$out" | $PY -c "import json,sys; print(json.load(sys.stdin).get('id',''))")
-  status=$(printf '%s' "$out" | $PY -c "import json,sys; print(json.load(sys.stdin).get('status',''))")
-  echo "notarization of $(basename "$1"): $status (submission $id)"
-  if [[ "$status" != "Accepted" ]]; then
-    [[ -n "$id" ]] && xcrun notarytool log "$id" --apple-id "$APPLE_ID" \
-      --password "$APPLE_APP_PASSWORD" --team-id "$APPLE_TEAM_ID" || true
-    exit 1
-  fi
+  local file=$1 id="" status="" out deadline
+  for attempt in 1 2 3 4 5; do
+    out=$(xcrun notarytool submit "$file" "${NOTARY[@]}" --no-wait --output-format json) && id=$(printf '%s' "$out" | json id)
+    [[ -n "$id" ]] && break
+    echo "submit failed (attempt $attempt), retrying in 30s"; sleep 30
+  done
+  [[ -n "$id" ]] || { echo "::error::could not submit $(basename "$file") to Apple"; exit 1; }
+  echo "$id" > dist/notary-submission.txt
+  echo "submitted $(basename "$file") to Apple: submission $id"
+  deadline=$(( $(date +%s) + ${NOTARY_WAIT_MINUTES:-170} * 60 ))
+  while :; do
+    status=$(xcrun notarytool info "$id" "${NOTARY[@]}" --output-format json 2>/dev/null | json status)
+    echo "$(date -u +%H:%M:%S) notarization: ${status:-(no answer, will retry)}"
+    case "$status" in
+      Accepted) return 0 ;;
+      Invalid|Rejected)
+        xcrun notarytool log "$id" "${NOTARY[@]}" || true
+        exit 1 ;;
+    esac
+    if (( $(date +%s) > deadline )); then
+      echo "::warning::Apple is still checking submission $id; the signed dmg is kept so it can be stapled later"
+      exit 3
+    fi
+    sleep 30
+  done
 }
 
-if [[ -n "$SIGN" ]]; then
-  ./scripts/sign_macos.sh "$APP"
-  if [[ -n "$NOTARIZE" ]]; then
-    # Notarize the app itself and staple the ticket to it, so it also opens
-    # cleanly after being copied out of the dmg while offline.
-    ditto -c -k --keepParent "$APP" dist/app-for-notary.zip
-    notarize dist/app-for-notary.zip
-    rm dist/app-for-notary.zip
-    xcrun stapler staple "$APP"
-  fi
-fi
+[[ -n "$SIGN" ]] && ./scripts/sign_macos.sh "$APP"
 
-rm -f "$DMG"
+rm -f "$DMG" dist/notary-submission.txt
 STAGE=$(mktemp -d)
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"

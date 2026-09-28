@@ -47,6 +47,7 @@ jobs:
           - { runner: macos-15, arch: arm64 }
           - { runner: macos-15-intel, arch: x64 }
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 200  # Apple's notarization can be slow for new accounts
     env:
       # Developer ID signing + notarization happen when these secrets exist
       # (they don't for pull requests from forks, which then build unsigned).
@@ -92,7 +93,6 @@ jobs:
           grep -q "source=Notarized Developer ID" gk-app.txt
           spctl -a -vvv -t open --context context:primary-signature dist/*.dmg 2>&1 | tee gk-dmg.txt
           grep -q "source=Notarized Developer ID" gk-dmg.txt
-          xcrun stapler validate "dist/VCF Lite.app"
           xcrun stapler validate dist/*.dmg
       - name: Releases must be signed
         if: startsWith(github.ref, 'refs/tags/v') && (env.HAS_SIGNING != 'true' || env.HAS_NOTARY != 'true')
@@ -107,6 +107,18 @@ jobs:
           cp dist/*.dmg "out/VCF-Lite-macOS-${{ matrix.arch }}.dmg"
       - uses: actions/upload-artifact@v7
         with: { name: "macos-${{ matrix.arch }}", path: out/* }
+      # If notarization didn't finish (or anything else failed after signing),
+      # keep the signed dmg and its Apple submission id: once Apple accepts it,
+      # `xcrun stapler staple` completes it without a new submission.
+      - name: Keep the signed dmg if the job failed
+        if: failure() && env.HAS_SIGNING == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: "unfinished-macos-${{ matrix.arch }}"
+          path: |
+            dist/*.dmg
+            dist/notary-submission.txt
+          if-no-files-found: ignore
 
   windows:
     needs: test

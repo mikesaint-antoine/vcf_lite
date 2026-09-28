@@ -32,3 +32,21 @@ Open the failed job on the Actions tab. Each platform's "Self-test" step opens
 `tests/data/sample.vcf.gz` in the real app; if it fails, the app couldn't start
 or show rows on that platform. On Windows the app also writes a log to
 `%LOCALAPPDATA%\VCF Lite\log.txt` (macOS: `~/Library/Caches/VCF Lite/log.txt`).
+
+## If Apple's notarization is slow
+
+Each macOS build submits its signed `.dmg` to Apple and waits (up to about 3
+hours, retrying through network hiccups). If Apple still hasn't finished, the
+job fails but keeps the signed file as an artifact named
+`unfinished-macos-<arch>` (the `.dmg` plus `notary-submission.txt` with Apple's
+submission id). No need to rebuild or resubmit:
+
+```bash
+gh run download <run-id> -R mikesaint-antoine/vcf_lite -n unfinished-macos-arm64 -D unfinished
+xcrun notarytool info "$(cat unfinished/notary-submission.txt)" --apple-id YOUR_APPLE_ID --team-id 93J2SRTJ3J
+# when it says "Accepted":
+xcrun stapler staple unfinished/VCF-Lite-*-macOS.dmg
+```
+
+The stapled `.dmg` can then be attached to the release as
+`VCF-Lite-macOS-arm64.dmg` (or `-x64`).
