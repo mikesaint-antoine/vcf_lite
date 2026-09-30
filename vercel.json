@@ -4,5 +4,20 @@
   "installCommand": "",
   "buildCommand": "",
   "outputDirectory": "docs",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/test.vcf",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"test.vcf\""
+        }
+      ]
+    }
+  ]
 }
